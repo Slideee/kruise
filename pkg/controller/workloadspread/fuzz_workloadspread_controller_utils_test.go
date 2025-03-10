@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// GenerateRawSeedInputs generates a set of raw JSON byte slices representing different seed inputs.
+// generateRawSeedInputs generates a set of raw JSON byte slices representing different seed inputs.
 // These seeds are used to simulate various configurations for fuzz testing.
-func GenerateRawSeedInputs() [][]byte {
+func generateRawSeedInputs() [][]byte {
 	return [][]byte{
 		[]byte(``),
 		[]byte(`{}`),
@@ -25,7 +25,7 @@ func GenerateRawSeedInputs() [][]byte {
 	}
 }
 
-func FuzzMatchesSubset(f *testing.F) {
+func FuzzMatchesSubsetWithHeaders(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		f := fuzz.NewConsumer(data)
 
@@ -53,8 +53,8 @@ func FuzzMatchesSubset(f *testing.F) {
 	})
 }
 
-func FuzzMatchesSubsetWithRawPatch(f *testing.F) {
-	for _, seed := range GenerateRawSeedInputs() {
+func FuzzMatchesSubsetWithNative(f *testing.F) {
+	for _, seed := range generateRawSeedInputs() {
 		f.Add(seed, 0)
 	}
 
@@ -67,7 +67,7 @@ func FuzzMatchesSubsetWithRawPatch(f *testing.F) {
 	})
 }
 
-func FuzzPodPreferredScore(f *testing.F) {
+func FuzzPodPreferredScoreWithHeaders(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		f := fuzz.NewConsumer(data)
 
@@ -84,8 +84,8 @@ func FuzzPodPreferredScore(f *testing.F) {
 	})
 }
 
-func FuzzPodPreferredScoreWithRawPatch(f *testing.F) {
-	for _, seed := range GenerateRawSeedInputs() {
+func FuzzPodPreferredScoreWithNative(f *testing.F) {
+	for _, seed := range generateRawSeedInputs() {
 		f.Add(seed)
 	}
 
@@ -97,7 +97,7 @@ func FuzzPodPreferredScoreWithRawPatch(f *testing.F) {
 	})
 }
 
-func FuzzMatchesSubsetRequiredAndToleration(f *testing.F) {
+func FuzzMatchesSubsetRequiredAndTolerationWithHeaders(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		f := fuzz.NewConsumer(data)
 
