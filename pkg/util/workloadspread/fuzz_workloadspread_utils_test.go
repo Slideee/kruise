@@ -33,6 +33,8 @@ import (
 // It generates random maps/slices and access paths to validate deep field access.
 func FuzzNestedField(f *testing.F) {
 	f.Add([]byte("00\x011\x00\x00\x00\x05010010000"))
+	f.Add([]byte("00\x011\x00\x00\x00\x05-010010000"))
+
 	f.Fuzz(func(t *testing.T, data []byte) {
 		cf := fuzz.NewConsumer(data)
 
@@ -41,7 +43,6 @@ func FuzzNestedField(f *testing.F) {
 
 		// Randomly choose between map or slice data structure
 		useMap, _ := cf.GetBool()
-
 		if useMap {
 			m := make(map[string]any) // Test with nested map structure
 			_ = cf.FuzzMap(&m)
