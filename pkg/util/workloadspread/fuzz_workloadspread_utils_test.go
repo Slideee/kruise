@@ -32,7 +32,7 @@ import (
 // various data structures and access paths through fuzzing.
 // It generates random maps/slices and access paths to validate deep field access.
 func FuzzNestedField(f *testing.F) {
-	//f.Add([]byte("00\x011\x00\x00\x00\x05010010000"))
+	f.Add([]byte("00\x011\x00\x00\x00\x05010010000"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		cf := fuzz.NewConsumer(data)
 
