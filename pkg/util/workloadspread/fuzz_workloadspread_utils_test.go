@@ -37,27 +37,18 @@ func FuzzNestedField(f *testing.F) {
 		cf := fuzz.NewConsumer(data)
 
 		paths := make([]string, 0)
-		if err := cf.CreateSlice(&paths); err != nil {
-			return
-		}
+		_ = cf.CreateSlice(&paths)
 
 		// Randomly choose between map or slice data structure
-		useMap, err := cf.GetBool()
-		if err != nil {
-			return
-		}
+		useMap, _ := cf.GetBool()
 
 		if useMap {
 			m := make(map[string]any) // Test with nested map structure
-			if err := cf.FuzzMap(&m); err != nil {
-				return
-			}
+			_ = cf.FuzzMap(&m)
 			_, _, _ = NestedField[any](m, paths...)
 		} else {
 			s := make([]any, 0) // Test with nested slice structure
-			if err := cf.CreateSlice(&s); err != nil {
-				return
-			}
+			_ = cf.CreateSlice(&s)
 			_, _, _ = NestedField[any](s, paths...)
 		}
 	})
