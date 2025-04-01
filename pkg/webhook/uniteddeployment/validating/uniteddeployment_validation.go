@@ -18,6 +18,7 @@ package validating
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -46,21 +47,26 @@ func validateUnitedDeploymentSpec(spec *appsv1alpha1.UnitedDeploymentSpec, fldPa
 
 	if spec.Replicas != nil {
 		allErrs = append(allErrs, apivalidation.ValidateNonnegativeField(int64(*spec.Replicas), fldPath.Child("replicas"))...)
+		klog.Infof("validateUnitedDeploymentSpec 1")
 	}
 	if spec.Selector == nil {
 		allErrs = append(allErrs, field.Required(fldPath.Child("selector"), ""))
+		klog.Infof("validateUnitedDeploymentSpec 2")
 	} else {
 		allErrs = append(allErrs, unversionedvalidation.ValidateLabelSelector(spec.Selector, unversionedvalidation.LabelSelectorValidationOptions{}, fldPath.Child("selector"))...)
 		if len(spec.Selector.MatchLabels)+len(spec.Selector.MatchExpressions) == 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), spec.Selector, "empty selector is invalid for statefulset"))
+			klog.Infof("validateUnitedDeploymentSpec 3")
 		}
 	}
 
 	selector, err := metav1.LabelSelectorAsSelector(spec.Selector)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("selector"), spec.Selector, ""))
+		klog.Infof("validateUnitedDeploymentSpec 4")
 	} else {
 		allErrs = append(allErrs, validateSubsetTemplate(&spec.Template, selector, fldPath.Child("template"))...)
+		klog.Infof("validateUnitedDeploymentSpec 5")
 	}
 
 	allErrs = append(allErrs, validateSubsetReplicas(spec.Replicas, spec.Topology.Subsets, fldPath.Child("topology", "subsets"))...)
@@ -69,36 +75,44 @@ func validateUnitedDeploymentSpec(spec *appsv1alpha1.UnitedDeploymentSpec, fldPa
 	for i, subset := range spec.Topology.Subsets {
 		if len(subset.Name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("topology", "subsets").Index(i).Child("name"), ""))
+			klog.Infof("validateUnitedDeploymentSpec 6")
 		}
-
+		klog.Infof("validateUnitedDeploymentSpec 6.1")
 		if subSetNames.Has(subset.Name) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("topology", "subsets").Index(i).Child("name"), subset.Name, fmt.Sprintf("duplicated subset name %s", subset.Name)))
+			klog.Infof("validateUnitedDeploymentSpec 7")
 		}
 
 		subSetNames.Insert(subset.Name)
-
+		klog.Infof("validateUnitedDeploymentSpec 7.1")
 		if errs := apimachineryvalidation.NameIsDNSLabel(subset.Name, false); len(errs) > 0 {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("topology", "subsets").Index(i).Child("name"), subset.Name, fmt.Sprintf("invalid subset name %s", strings.Join(errs, ", "))))
+			klog.Infof("validateUnitedDeploymentSpec 8")
 		}
-
+		klog.Infof("validateUnitedDeploymentSpec 8.1")
 		coreNodeSelectorTerm := &core.NodeSelectorTerm{}
 		if err := corev1.Convert_v1_NodeSelectorTerm_To_core_NodeSelectorTerm(subset.NodeSelectorTerm.DeepCopy(), coreNodeSelectorTerm, nil); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("topology", "subsets").Index(i).Child("nodeSelectorTerm"), subset.NodeSelectorTerm, fmt.Sprintf("Convert_v1_NodeSelectorTerm_To_core_NodeSelectorTerm failed: %v", err)))
+			klog.Infof("validateUnitedDeploymentSpec 9")
 		} else {
 			allErrs = append(allErrs, apivalidation.ValidateNodeSelectorTerm(*coreNodeSelectorTerm, fldPath.Child("topology", "subsets").Index(i).Child("nodeSelectorTerm"))...)
+			klog.Infof("validateUnitedDeploymentSpec 10")
 		}
-
+		klog.Infof("validateUnitedDeploymentSpec 10.1")
 		if subset.Tolerations != nil {
 			var coreTolerations []core.Toleration
 			for i, toleration := range subset.Tolerations {
 				coreToleration := &core.Toleration{}
 				if err := corev1.Convert_v1_Toleration_To_core_Toleration(&toleration, coreToleration, nil); err != nil {
 					allErrs = append(allErrs, field.Invalid(fldPath.Child("topology", "subsets").Index(i).Child("tolerations"), subset.Tolerations, fmt.Sprintf("Convert_v1_Toleration_To_core_Toleration failed: %v", err)))
+					klog.Infof("validateUnitedDeploymentSpec 11")
 				} else {
 					coreTolerations = append(coreTolerations, *coreToleration)
+					klog.Infof("validateUnitedDeploymentSpec 12")
 				}
 			}
 			allErrs = append(allErrs, apivalidation.ValidateTolerations(coreTolerations, fldPath.Child("topology", "subsets").Index(i).Child("tolerations"))...)
+			klog.Infof("validateUnitedDeploymentSpec 13")
 		}
 
 		if subset.Replicas == nil {
@@ -110,10 +124,11 @@ func validateUnitedDeploymentSpec(spec *appsv1alpha1.UnitedDeploymentSpec, fldPa
 		for subset := range spec.UpdateStrategy.ManualUpdate.Partitions {
 			if !subSetNames.Has(subset) {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("updateStrategy", "partitions"), spec.UpdateStrategy.ManualUpdate.Partitions, fmt.Sprintf("subset %s does not exist", subset)))
+				klog.Infof("validateUnitedDeploymentSpec 14")
 			}
 		}
 	}
-
+	klog.Infof("validateUnitedDeploymentSpec 15")
 	return allErrs
 }
 
@@ -138,6 +153,7 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 	}
 
 	for i, subset := range subsets {
+		klog.Infof("validateSubsetReplicas 1")
 		replicas := int32(0)
 		if subset.Replicas != nil {
 			countReplicas++
@@ -146,6 +162,7 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 			if err != nil {
 				errList = append(errList, field.Invalid(fldPath.Index(i).Child("replicas"), subset.Replicas, err.Error()))
 			}
+			klog.Infof("validateSubsetReplicas 2")
 		}
 		sumReplicas += int64(replicas)
 
@@ -156,6 +173,7 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 			if err != nil {
 				errList = append(errList, field.Invalid(fldPath.Index(i).Child("minReplicas"), subset.MaxReplicas, err.Error()))
 			}
+			klog.Infof("validateSubsetReplicas 3")
 		}
 		sumMinReplicas += int64(minReplicas)
 
@@ -167,15 +185,17 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 			if err != nil {
 				errList = append(errList, field.Invalid(fldPath.Index(i).Child("minReplicas"), subset.MaxReplicas, err.Error()))
 			}
+			klog.Infof("validateSubsetReplicas 4")
 		}
 		sumMaxReplicas += int64(maxReplicas)
 
 		if minReplicas > maxReplicas {
 			errList = append(errList, field.Invalid(fldPath.Index(i).Child("minReplicas"), subset.MaxReplicas,
 				fmt.Sprintf("subset[%d].minReplicas must be more than or equal to maxReplicas", i)))
+			klog.Infof("validateSubsetReplicas 5")
 		}
 	}
-
+	klog.Infof("validateSubsetReplicas 6")
 	if hasReplicasSettings && hasCapacitySettings {
 		errList = append(errList, field.Invalid(fldPath, subsets, "subset.Replicas and subset.MinReplicas/subset.MaxReplicas are mutually exclusive in a UnitedDeployment"))
 		return errList
@@ -191,6 +211,7 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 		if sumMinReplicas > sumMaxReplicas {
 			errList = append(errList, field.Invalid(fldPath, sumMinReplicas, "sum of indicated subset.minReplicas should not be greater than sum of indicated subset.maxReplicas"))
 		}
+		klog.Infof("validateSubsetReplicas 7")
 	} else {
 		if *expectedReplicas != -1 {
 			// sum of subset replicas may be less than uniteddployment replicas
@@ -200,11 +221,14 @@ func validateSubsetReplicas(expectedReplicas *int32, subsets []appsv1alpha1.Subs
 			if countReplicas > 0 && countReplicas == len(subsets) && sumReplicas != int64(*expectedReplicas) {
 				errList = append(errList, field.Invalid(fldPath, sumReplicas, fmt.Sprintf("if replicas of all subsets are provided, the sum of indicated subset replicas %d should equal UnitedDeployment replicas %d", sumReplicas, expectedReplicas)))
 			}
+			klog.Infof("validateSubsetReplicas 8")
 		} else if countReplicas != len(subsets) {
 			// validate all of subsets replicas are not nil
 			errList = append(errList, field.Invalid(fldPath, sumReplicas, "if UnitedDeployment replicas is not provided, replicas of all subsets should be provided"))
+			klog.Infof("validateSubsetReplicas 9")
 		}
 	}
+	klog.Infof("validateSubsetReplicas 10")
 	return errList
 }
 
@@ -281,23 +305,29 @@ func validateSubsetTemplateUpdate(template, oldTemplate *appsv1alpha1.SubsetTemp
 
 func validateSubsetTemplate(template *appsv1alpha1.SubsetTemplate, selector labels.Selector, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-
+	klog.Infof("validateSubsetTemplate 1")
 	var templateCount int
 	if template.StatefulSetTemplate != nil {
 		templateCount++
+		klog.Infof("validateSubsetTemplate 2")
 	}
 	if template.AdvancedStatefulSetTemplate != nil {
 		templateCount++
+		klog.Infof("validateSubsetTemplate 3")
 	}
 	if template.CloneSetTemplate != nil {
 		templateCount++
+		klog.Infof("validateSubsetTemplate 4")
 	}
 	if template.DeploymentTemplate != nil {
 		templateCount++
+		klog.Infof("validateSubsetTemplate 5")
 	}
 	if templateCount < 1 {
+		klog.Infof("validateSubsetTemplate 6")
 		allErrs = append(allErrs, field.Required(fldPath, "should provide one of statefulSetTemplate, advancedStatefulSetTemplate, cloneSetTemplate, or deploymentTemplate"))
 	} else if templateCount > 1 {
+		klog.Infof("validateSubsetTemplate 7")
 		allErrs = append(allErrs, field.Invalid(fldPath, template, "should provide only one of statefulSetTemplate, advancedStatefulSetTemplate, cloneSetTemplate, or deploymentTemplate"))
 	}
 
@@ -313,6 +343,7 @@ func validateSubsetTemplate(template *appsv1alpha1.SubsetTemplate, selector labe
 			allErrs = append(allErrs, field.Invalid(fldPath.Root(), template, fmt.Sprintf("Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec failed: %v", err)))
 			return allErrs
 		}
+		klog.Infof("validateSubsetTemplate 8")
 		allErrs = append(allErrs, appsvalidation.ValidatePodTemplateSpecForStatefulSet(coreTemplate, selector, fldPath.Child("statefulSetTemplate", "spec", "template"), webhookutil.DefaultPodValidationOptions)...)
 	} else if template.AdvancedStatefulSetTemplate != nil {
 		labels := labels.Set(template.AdvancedStatefulSetTemplate.Labels)
@@ -322,11 +353,14 @@ func validateSubsetTemplate(template *appsv1alpha1.SubsetTemplate, selector labe
 		allErrs = append(allErrs, validateAdvancedStatefulSet(template.AdvancedStatefulSetTemplate, fldPath.Child("advancedStatefulSetTemplate"))...)
 		template := template.AdvancedStatefulSetTemplate.Spec.Template
 		coreTemplate, err := convertor.ConvertPodTemplateSpec(&template)
+		klog.Infof("validateSubsetTemplate 9")
 		if err != nil {
+			klog.Infof("validateSubsetTemplate 9.1")
 			allErrs = append(allErrs, field.Invalid(fldPath.Root(), template, fmt.Sprintf("Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec failed: %v", err)))
 			return allErrs
 		}
 		allErrs = append(allErrs, appsvalidation.ValidatePodTemplateSpecForStatefulSet(coreTemplate, selector, fldPath.Child("advancedStatefulSetTemplate", "spec", "template"), webhookutil.DefaultPodValidationOptions)...)
+		klog.Infof("validateSubsetTemplate 9.2")
 	} else if template.DeploymentTemplate != nil {
 		labels := labels.Set(template.DeploymentTemplate.Labels)
 		if !selector.Matches(labels) {
@@ -335,13 +369,16 @@ func validateSubsetTemplate(template *appsv1alpha1.SubsetTemplate, selector labe
 		allErrs = append(allErrs, validateDeployment(template.DeploymentTemplate, fldPath.Child("deploymentTemplate"))...)
 		template := template.DeploymentTemplate.Spec.Template
 		coreTemplate, err := convertor.ConvertPodTemplateSpec(&template)
+		klog.Infof("validateSubsetTemplate 10")
 		if err != nil {
+			klog.Infof("validateSubsetTemplate 10.1")
 			allErrs = append(allErrs, field.Invalid(fldPath.Root(), template, fmt.Sprintf("Convert_v1_PodTemplateSpec_To_core_PodTemplateSpec failed: %v", err)))
 			return allErrs
 		}
 		allErrs = append(allErrs, appsvalidation.ValidatePodTemplateSpecForReplicaSet(coreTemplate, nil, selector, 0, fldPath.Child("deploymentTemplate", "spec", "template"), webhookutil.DefaultPodValidationOptions)...)
+		klog.Infof("validateSubsetTemplate 10.2")
 	}
-
+	klog.Infof("validateSubsetTemplate 11")
 	return allErrs
 }
 

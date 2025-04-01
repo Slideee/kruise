@@ -79,7 +79,9 @@ func getSubsetRunningReplicas(nameToSubset *map[string]*Subset) map[string]int32
 	var result = make(map[string]int32)
 	for name, subset := range *nameToSubset {
 		result[name] = subset.Status.Replicas - subset.Status.UnschedulableStatus.PendingPods
+		klog.Infof("elasticAllocator 2")
 	}
+	klog.Infof("elasticAllocator 3")
 	return result
 }
 
@@ -103,14 +105,15 @@ type specificAllocator struct {
 // new replicas indicated from UnitedDeployment.Spec.Topology.Subsets.
 func (s *specificAllocator) Alloc(nameToSubset *map[string]*Subset) (*map[string]int32, error) {
 	// SortToAllocator to sort all subset by subset.Replicas in order of increment
+	klog.InfoS("specificAllocator 1")
 	s.subsets = getSubsetInfos(nameToSubset, s.UnitedDeployment)
 	sort.Sort(s.subsets)
-
+	klog.InfoS("specificAllocator 3")
 	var expectedReplicas int32 = -1
 	if s.Spec.Replicas != nil {
 		expectedReplicas = *s.Spec.Replicas
 	}
-
+	klog.InfoS("specificAllocator 4")
 	specifiedReplicas := getSpecifiedSubsetReplicas(expectedReplicas, s.UnitedDeployment)
 	klog.V(4).InfoS("UnitedDeployment specifiedReplicas", "unitedDeployment", klog.KObj(s), "specifiedReplicas", specifiedReplicas)
 	return s.AllocateReplicas(expectedReplicas, specifiedReplicas)
@@ -132,6 +135,8 @@ func (s *specificAllocator) validateReplicas(replicas int32, subsetReplicasLimit
 			specifiedCount++
 		}
 	}
+	klog.InfoS("specificAllocator 7")
+
 	klog.V(4).InfoS("SpecifiedCount and subsetsCount", "specifiedCount", specifiedCount, "subsetsCount", len(*s.subsets))
 	if replicas != -1 {
 		if specifiedReplicas > replicas {
@@ -141,10 +146,11 @@ func (s *specificAllocator) validateReplicas(replicas int32, subsetReplicasLimit
 			return fmt.Errorf("specified subsets' replica (%d) is less than UnitedDeployment replica (%d)",
 				specifiedReplicas, replicas)
 		}
+		klog.InfoS("specificAllocator 8")
 	} else if specifiedCount != len(*s.subsets) {
 		return fmt.Errorf("all subsets must be specified when UnitedDeployment replica is unspecified")
 	}
-
+	klog.InfoS("specificAllocator 9")
 	return nil
 }
 
@@ -158,6 +164,7 @@ func getSpecifiedSubsetReplicas(replicas int32, ud *appsv1alpha1.UnitedDeploymen
 		if subsetDef.Replicas == nil {
 			continue
 		}
+		klog.InfoS("specificAllocator 5")
 
 		if specifiedReplicas, err := ParseSubsetReplicas(replicas, *subsetDef.Replicas); err == nil {
 			replicaLimits[subsetDef.Name] = specifiedReplicas
@@ -165,6 +172,7 @@ func getSpecifiedSubsetReplicas(replicas int32, ud *appsv1alpha1.UnitedDeploymen
 			klog.ErrorS(err, "Failed to consider the replicas of subset when parsing replicaLimits during managing replicas of UnitedDeployment",
 				"subsetName", subsetDef.Name, "unitedDeployment", klog.KObj(ud))
 		}
+		klog.InfoS("specificAllocator 6")
 	}
 
 	return &replicaLimits
@@ -178,6 +186,7 @@ func getSubsetInfos(nameToSubset *map[string]*Subset, ud *appsv1alpha1.UnitedDep
 			replicas = subset.Spec.Replicas
 		}
 		infos[idx] = &nameToReplicas{SubsetName: subsetDef.Name, Replicas: replicas}
+		klog.InfoS("specificAllocator 2")
 	}
 
 	return &infos
@@ -191,6 +200,7 @@ func (s *specificAllocator) AllocateReplicas(replicas int32, specifiedSubsetRepl
 	if err := s.validateReplicas(replicas, specifiedSubsetReplicas); err != nil {
 		return nil, err
 	}
+	klog.InfoS("specificAllocator 10")
 
 	return s.normalAllocate(replicas, specifiedSubsetReplicas), nil
 }
@@ -205,6 +215,7 @@ func (s *specificAllocator) normalAllocate(expectedReplicas int32, specifiedSubs
 			subset.Replicas = replicas
 			subset.Specified = true
 			specifiedSubsetCount++
+			klog.InfoS("specificAllocator 11")
 		}
 	}
 
@@ -214,8 +225,10 @@ func (s *specificAllocator) normalAllocate(expectedReplicas int32, specifiedSubs
 		allocatableReplicas := expectedReplicas - specifiedReplicas
 		average := int(allocatableReplicas) / leftSubsetCount
 		remainder := int(allocatableReplicas) % leftSubsetCount
+		klog.InfoS("specificAllocator 12")
 
 		for i := len(*s.subsets) - 1; i >= 0; i-- {
+			klog.InfoS("specificAllocator 12.1")
 			subset := (*s.subsets)[i]
 			if subset.Specified {
 				continue
@@ -229,12 +242,15 @@ func (s *specificAllocator) normalAllocate(expectedReplicas int32, specifiedSubs
 			}
 
 			leftSubsetCount--
-
+			klog.InfoS("specificAllocator 12.2")
 			if leftSubsetCount == 0 {
 				break
 			}
+			klog.InfoS("specificAllocator 13")
+
 		}
 	}
+	klog.InfoS("specificAllocator 14")
 
 	return s.toSubsetReplicaMap()
 }
@@ -244,6 +260,7 @@ func (s *specificAllocator) toSubsetReplicaMap() *map[string]int32 {
 	for _, subset := range *s.subsets {
 		allocatedReplicas[subset.SubsetName] = subset.Replicas
 	}
+	klog.InfoS("specificAllocator 15")
 
 	return &allocatedReplicas
 }
@@ -281,6 +298,7 @@ func (ac *elasticAllocator) Alloc(nameToSubset *map[string]*Subset) (*map[string
 		replicas = *ac.Spec.Replicas
 	}
 
+	klog.Infof("elasticAllocator 1")
 	minReplicasMap, maxReplicasMap, err := ac.validateAndCalculateMinMaxMap(replicas, nameToSubset)
 	if err != nil {
 		return nil, err
@@ -298,24 +316,29 @@ func (ac *elasticAllocator) validateAndCalculateMinMaxMap(replicas int32, nameTo
 		maxReplicas := int32(math.MaxInt32)
 		if subset.MinReplicas != nil {
 			minReplicas, _ = ParseSubsetReplicas(replicas, *subset.MinReplicas)
+			klog.Infof("elasticAllocator 4")
 		}
 		if subset.MaxReplicas != nil {
 			maxReplicas, _ = ParseSubsetReplicas(replicas, *subset.MaxReplicas)
+			klog.Infof("elasticAllocator 5")
 		}
 		if ac.Spec.Topology.ScheduleStrategy.IsAdaptive() {
 			unschedulable := isSubSetUnschedulable(subset.Name, nameToSubset)
+			klog.Infof("elasticAllocator 6")
 			// This means that in the Adaptive scheduling strategy, an unschedulable subset can only be scaled down, not scaled up.
 			if runningReplicas, ok := runningReplicasMap[subset.Name]; unschedulable && ok {
 				klog.InfoS("Assign min(runningReplicas, minReplicas/maxReplicas) for unschedulable subset",
 					"subset", subset.Name)
 				minReplicas = integer.Int32Min(runningReplicas, minReplicas)
 				maxReplicas = integer.Int32Min(runningReplicas, maxReplicas)
+				klog.Infof("elasticAllocator 7")
 			}
 			// To prevent healthy pod from being deleted
 			if runningReplicas := runningReplicasMap[subset.Name]; !unschedulable && runningReplicas > minReplicas {
 				klog.InfoS("Assign min(runningReplicas, maxReplicas) to minReplicas to avoid deleting running pods",
 					"subset", subset.Name, "minReplicas", minReplicas, "runningReplicas", runningReplicas, "maxReplicas", maxReplicas)
 				minReplicas = integer.Int32Min(runningReplicas, maxReplicas)
+				klog.Infof("elasticAllocator 8")
 			}
 		}
 
@@ -325,6 +348,7 @@ func (ac *elasticAllocator) validateAndCalculateMinMaxMap(replicas int32, nameTo
 		if minReplicas > maxReplicas {
 			return nil, nil, fmt.Errorf("subset[%d].maxReplicas must be more than or equal to minReplicas", index)
 		}
+		klog.Infof("elasticAllocator 9")
 	}
 	klog.InfoS("elastic allocate maps calculated", "minReplicasMap", minReplicasMap, "maxReplicasMap", maxReplicasMap)
 	return minReplicasMap, maxReplicasMap, nil
@@ -340,6 +364,7 @@ func (ac *elasticAllocator) alloc(replicas int32, minReplicasMap, maxReplicasMap
 		addReplicas = integer.Int32Max(addReplicas, 0)
 		subsetReplicas[subset.Name] = addReplicas
 		allocated += addReplicas
+		klog.Infof("elasticAllocator 10")
 	}
 
 	if allocated >= replicas { // no quota to allocate.
@@ -354,6 +379,8 @@ func (ac *elasticAllocator) alloc(replicas int32, minReplicasMap, maxReplicasMap
 		addReplicas = integer.Int32Max(addReplicas, 0)
 		subsetReplicas[subset.Name] += addReplicas
 		allocated += addReplicas
+		klog.Infof("elasticAllocator 11")
 	}
+	klog.Infof("elasticAllocator 12")
 	return &subsetReplicas
 }
