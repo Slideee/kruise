@@ -120,6 +120,9 @@ func FuzzValidateResourceDistributionResource(f *testing.F) {
 			return
 		}
 
+		if sameGVK, err := cf.GetBool(); sameGVK && err == nil {
+			oldObj.SetGroupVersionKind(newObj.GetObjectKind().GroupVersionKind())
+		}
 		_ = h.validateResourceDistributionSpecResource(newObj, oldObj, field.NewPath("resource"))
 	})
 }
