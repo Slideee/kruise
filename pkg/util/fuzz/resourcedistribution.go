@@ -77,8 +77,6 @@ var (
 			}`),
 		},
 	}
-
-	resourceTypeCount = len(structuredResources)
 )
 
 func GenerateResourceDistributionResource(cf *fuzz.ConsumeFuzzer, ud *appsv1alpha1.ResourceDistribution) error {
@@ -92,14 +90,8 @@ func GenerateResourceDistributionResource(cf *fuzz.ConsumeFuzzer, ud *appsv1alph
 		if err != nil {
 			return err
 		}
-
-		index := choice % resourceTypeCount
-		if index < 0 {
-			index += resourceTypeCount
-		}
-
 		ud.Spec.Resource = runtime.RawExtension{
-			Raw: structuredResources[index].data,
+			Raw: structuredResources[choice%len(structuredResources)].data,
 		}
 		return nil
 	}
