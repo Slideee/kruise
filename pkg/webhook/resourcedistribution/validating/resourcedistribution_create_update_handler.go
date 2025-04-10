@@ -57,16 +57,20 @@ func (h *ResourceDistributionCreateUpdateHandler) validateResourceDistributionSp
 	if resource == nil {
 		return
 	}
+	klog.Infof("validateResourceDistributionSpec 1")
 	// deserialize old resource if need
 	var oldResource runtime.Object
 	if oldObj != nil {
 		oldResource, errs = DeserializeResource(&oldObj.Spec.Resource, fldPath)
 		allErrs = append(allErrs, errs...)
 	}
+	klog.Infof("validateResourceDistributionSpec 2")
 	// 1. validate resource
 	allErrs = append(allErrs, h.validateResourceDistributionSpecResource(resource, oldResource, fldPath.Child("resource"))...)
+	klog.Infof("validateResourceDistributionSpec 3")
 	// 2. validate targets
 	allErrs = append(allErrs, h.validateResourceDistributionSpecTargets(&obj.Spec.Targets, fldPath.Child("targets"))...)
+	klog.Infof("validateResourceDistributionSpec 4")
 	return
 }
 
@@ -79,10 +83,12 @@ func (h *ResourceDistributionCreateUpdateHandler) validateResourceDistributionSp
 	if !isSupportedGK(resource) {
 		return append(allErrs, field.Invalid(fldPath, resource, fmt.Sprintf("unknown or unsupported resource GroupKind, only support %v", supportedGKList)))
 	}
+	klog.Infof("validateResourceDistributionSpecResource 1")
 	// 2. validate resource group, kind and name when updating
 	if oldResource != nil && !haveSameGVKAndName(resource, oldResource) {
 		return append(allErrs, field.Invalid(fldPath, nil, "resource apiVersion, kind, and name are immutable"))
 	}
+	klog.Infof("validateResourceDistributionSpecResource 2")
 	// 3. dry run to check the resource
 	mice := resource.DeepCopyObject().(client.Object)
 	ConvertToUnstructured(mice).SetNamespace(webhookutil.GetNamespace())
@@ -90,6 +96,7 @@ func (h *ResourceDistributionCreateUpdateHandler) validateResourceDistributionSp
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return append(allErrs, field.InternalError(fldPath, fmt.Errorf("failed to dry-run to validate spec.resource, error: %v", err)))
 	}
+	klog.Infof("validateResourceDistributionSpecResource 3")
 	return
 }
 
@@ -105,27 +112,33 @@ func (h *ResourceDistributionCreateUpdateHandler) validateResourceDistributionSp
 		// validate namespace name
 		for _, msg := range coreval.ValidateNamespaceName(namespace.Name, false) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("includedNamespaces"), targets.IncludedNamespaces, msg))
+			klog.Infof("validateResourceDistributionSpecTargets 1")
 		}
+		klog.Infof("validateResourceDistributionSpecTargets 2")
 	}
 	for _, namespace := range targets.ExcludedNamespaces.List {
 		// validate namespace name
 		for _, msg := range coreval.ValidateNamespaceName(namespace.Name, false) {
+			klog.Infof("validateResourceDistributionSpecTargets 3")
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("excludedNamespaces"), targets.ExcludedNamespaces, msg))
 		}
 		// validate conflict between IncludedNamespaces and ExcludedNamespaces
 		if includedNS.Has(namespace.Name) {
 			conflicted = append(conflicted, namespace.Name)
+			klog.Infof("validateResourceDistributionSpecTargets 4")
 		}
+		klog.Infof("validateResourceDistributionSpecTargets 5")
 	}
 	if len(conflicted) != 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath, targets, fmt.Sprintf("ambiguous targets because namespace %v is in both IncludedNamespaces.List and ExcludedNamespaces.List", conflicted)))
+		klog.Infof("validateResourceDistributionSpecTargets 6")
 	}
 
 	// 2. validate targets.NamespaceLabelSelector
 	if _, err := metav1.LabelSelectorAsSelector(&targets.NamespaceLabelSelector); err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("namespaceLabelSelector"), targets.NamespaceLabelSelector, fmt.Sprintf("labelSelectorAsSelector error: %v", err)))
 	}
-
+	klog.Infof("validateResourceDistributionSpecTargets 7")
 	return
 }
 

@@ -15,6 +15,7 @@ package validating
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -77,11 +78,12 @@ func DeserializeResource(resourceRawExtension *runtime.RawExtension, fldPath *fi
 	if len(resourceRawExtension.Raw) == 0 {
 		return nil, append(allErrs, field.Invalid(fldPath, resource, "empty resource is not allowed"))
 	}
-
+	klog.Infof("DeserializeResource 1")
 	// 2. deserialize resource
 	resource, _, err := unstructured.UnstructuredJSONScheme.Decode(resourceRawExtension.Raw, nil, nil)
 	if err != nil {
 		allErrs = append(allErrs, field.InternalError(fldPath, fmt.Errorf("failed to deserialize resource, please check your spec.resource, err %v", err)))
 	}
+	klog.Infof("DeserializeResource 2")
 	return
 }
