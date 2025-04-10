@@ -104,26 +104,19 @@ func FuzzValidateResourceDistributionResource(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		cf := fuzz.NewConsumer(data)
 
-		newObj := &appsv1alpha1.ResourceDistribution{}
-		if err := cf.GenerateStruct(newObj); err != nil {
-			return
-		}
-		if err := fuzzutils.GenerateResourceDistributionResource(cf, newObj); err != nil {
+		newObj, err := fuzzutils.GenerateResourceObject(cf)
+		if err != nil {
 			return
 		}
 
-		oldObj := &appsv1alpha1.ResourceDistribution{}
+		var oldObj runtime.Object
 		if hasOld, err := cf.GetBool(); hasOld && err == nil {
-			if err := cf.GenerateStruct(oldObj); err != nil {
+			oldObj, err = fuzzutils.GenerateResourceObject(cf)
+			if err != nil {
 				return
-			}
-			if err := fuzzutils.GenerateResourceDistributionResource(cf, oldObj); err != nil {
-				return
-			}
-			if sameGVK, err := cf.GetBool(); sameGVK && err == nil {
-				oldObj.SetGroupVersionKind(newObj.GetObjectKind().GroupVersionKind())
 			}
 		}
+
 		_ = h.validateResourceDistributionSpecResource(newObj, oldObj, field.NewPath("resource"))
 	})
 }

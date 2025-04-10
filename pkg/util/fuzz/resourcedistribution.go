@@ -19,18 +19,19 @@ package fuzz
 import (
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	appsv1alpha1 "github.com/openkruise/kruise/apis/apps/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
-	structuredResources = []struct {
-		name string
-		data []byte
+	StructuredResources = []struct {
+		Name string
+		Data []byte
 	}{
 		{
-			name: "Secret",
-			data: []byte(`{
+			Name: "Secret",
+			Data: []byte(`{
 				"apiVersion": "v1",
 				"data": {
 					"test": "MWYyZDFlMmU2N2Rm"
@@ -43,8 +44,8 @@ var (
 			}`),
 		},
 		{
-			name: "ConfigMap",
-			data: []byte(`{
+			Name: "ConfigMap",
+			Data: []byte(`{
 				"apiVersion": "v1",
 				"data": {
 					"game.properties": "enemy.types=aliens,monsters\nplayer.maximum-lives=5\n",
@@ -59,8 +60,8 @@ var (
 			}`),
 		},
 		{
-			name: "Pod",
-			data: []byte(`{
+			Name: "Pod",
+			Data: []byte(`{
 				"apiVersion": "v1",
 				"kind": "Pod",
 				"metadata": {
@@ -91,7 +92,7 @@ func GenerateResourceDistributionResource(cf *fuzz.ConsumeFuzzer, ud *appsv1alph
 			return err
 		}
 		ud.Spec.Resource = runtime.RawExtension{
-			Raw: structuredResources[choice%len(structuredResources)].data,
+			Raw: StructuredResources[choice%len(StructuredResources)].Data,
 		}
 		return nil
 	}
@@ -163,6 +164,27 @@ func GenerateResourceDistributionTargets(cf *fuzz.ConsumeFuzzer, ud *appsv1alpha
 	}
 	ud.Spec.Targets = targets
 	return nil
+}
+
+func GenerateResourceObject(cf *fuzz.ConsumeFuzzer) (runtime.Object, error) {
+	choice, err := cf.GetInt()
+	if err != nil {
+		return nil, err
+	}
+
+	var obj runtime.Object
+	switch choice % 2 {
+	case 0:
+		obj = &corev1.ConfigMap{}
+	case 1:
+		obj = &corev1.Secret{}
+	}
+
+	if err := cf.GenerateStruct(obj); err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 func GenerateValidNamespaceName(cf *fuzz.ConsumeFuzzer) string {
