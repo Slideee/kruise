@@ -17,6 +17,7 @@ limitations under the License.
 package uniteddeployment
 
 import (
+	"k8s.io/klog/v2"
 	"strconv"
 	"strings"
 	"testing"
@@ -65,6 +66,7 @@ func FuzzParseSubsetReplicas(f *testing.F) {
 			if replicas != expected {
 				t.Errorf("Mismatch for Int type: expected %d, got %d", expected, replicas)
 			}
+			klog.Infof("FuzzParseSubsetReplicas 0")
 		case intstr.String:
 			strVal := subsetReplicas.StrVal
 			if !strings.HasSuffix(strVal, "%") {
@@ -80,6 +82,7 @@ func FuzzParseSubsetReplicas(f *testing.F) {
 			if int32(expected) != replicas {
 				t.Errorf("Mismatch for percentage %s%%: expected %d, got %d", percentStr, expected, replicas)
 			}
+			klog.Infof("FuzzParseSubsetReplicas 1")
 		default:
 			t.Errorf("Unsupported type %v", subsetReplicas.Type)
 		}

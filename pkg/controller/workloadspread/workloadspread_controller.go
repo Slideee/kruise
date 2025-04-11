@@ -609,7 +609,7 @@ func (r *ReconcileWorkloadSpread) patchFavoriteSubsetMetadataToPod(pod *corev1.P
 			"pod", klog.KObj(pod), "annotationValue", fmt.Sprintf("{Name: %s, Subset: %s}", ws.Name, favoriteSubset.Name))
 		return err
 	}
-
+	klog.Infof("FuzzPatchFavoriteSubsetMetadataToPod 0")
 	return nil
 }
 

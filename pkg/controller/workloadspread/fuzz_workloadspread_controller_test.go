@@ -19,6 +19,7 @@ package workloadspread
 import (
 	"context"
 	"encoding/json"
+	"k8s.io/klog/v2"
 	"strconv"
 	"testing"
 
@@ -151,6 +152,7 @@ func FuzzPatchFavoriteSubsetMetadataToPod(f *testing.F) {
 			} else if actualValue != v {
 				t.Errorf("Annotation mismatch for %s: expected %s, got %s", k, v, actualValue)
 			}
+			klog.Infof("FuzzPatchFavoriteSubsetMetadataToPod 1")
 		}
 
 		// Check labels
@@ -162,6 +164,7 @@ func FuzzPatchFavoriteSubsetMetadataToPod(f *testing.F) {
 			} else if actualValue != v {
 				t.Errorf("Label mismatch for %s: expected %s, got %s", k, v, actualValue)
 			}
+			klog.Infof("FuzzPatchFavoriteSubsetMetadataToPod 2")
 		}
 	})
 }

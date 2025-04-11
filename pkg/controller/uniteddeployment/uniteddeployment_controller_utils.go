@@ -19,6 +19,7 @@ package uniteddeployment
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"math"
 	"strconv"
 	"strings"
@@ -49,6 +50,7 @@ func ParseSubsetReplicas(udReplicas int32, subsetReplicas intstr.IntOrString) (i
 	if !strings.HasSuffix(strVal, "%") {
 		return 0, fmt.Errorf("subset replicas (%s) only support integer value or percentage value with a suffix '%%'", strVal)
 	}
+	klog.Infof("FuzzParseSubsetReplicas 2")
 
 	intPart := strVal[:len(strVal)-1]
 	percent64, err := strconv.ParseInt(intPart, 10, 32)
@@ -59,7 +61,7 @@ func ParseSubsetReplicas(udReplicas int32, subsetReplicas intstr.IntOrString) (i
 	if percent64 > int64(100) || percent64 < int64(0) {
 		return 0, fmt.Errorf("subset replicas (%s) should be in range [0, 100]", strVal)
 	}
-
+	klog.Infof("FuzzParseSubsetReplicas 3")
 	return int32(round(float64(udReplicas) * float64(percent64) / 100)), nil
 }
 

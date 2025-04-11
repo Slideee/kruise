@@ -18,6 +18,7 @@ package workloadspread
 
 import (
 	"encoding/json"
+	"k8s.io/klog/v2"
 	"testing"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
@@ -101,6 +102,7 @@ func FuzzInjectWorkloadSpreadIntoPod(f *testing.F) {
 				t.Errorf("Mismatched annotations for pod %s: expected %s, got %s",
 					pod.Name, string(expectedJSON), actual)
 			}
+			klog.Infof("FuzzInjectWorkloadSpreadIntoPod 0")
 		}
 	})
 }
