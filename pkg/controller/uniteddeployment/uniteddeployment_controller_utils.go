@@ -19,7 +19,6 @@ package uniteddeployment
 
 import (
 	"fmt"
-	"k8s.io/klog/v2"
 	"math"
 	"strconv"
 	"strings"
@@ -45,7 +44,6 @@ func ParseSubsetReplicas(udReplicas int32, subsetReplicas intstr.IntOrString) (i
 	if udReplicas < 0 {
 		return 0, fmt.Errorf("subsetReplicas (%v) should not be string when unitedDeployment replicas is empty", subsetReplicas.StrVal)
 	}
-	klog.Infof("ParseSubsetReplicas 1")
 	strVal := subsetReplicas.StrVal
 	if !strings.HasSuffix(strVal, "%") {
 		return 0, fmt.Errorf("subset replicas (%s) only support integer value or percentage value with a suffix '%%'", strVal)
@@ -56,12 +54,11 @@ func ParseSubsetReplicas(udReplicas int32, subsetReplicas intstr.IntOrString) (i
 	if err != nil {
 		return 0, fmt.Errorf("subset replicas (%s) should be correct percentage integer: %s", strVal, err)
 	}
-	klog.Infof("ParseSubsetReplicas 2")
 
 	if percent64 > int64(100) || percent64 < int64(0) {
 		return 0, fmt.Errorf("subset replicas (%s) should be in range [0, 100]", strVal)
 	}
-	klog.Infof("ParseSubsetReplicas 3")
+
 	return int32(round(float64(udReplicas) * float64(percent64) / 100)), nil
 }
 
